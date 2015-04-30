@@ -1,9 +1,27 @@
 package com.example.pperez.clienterestful_1;
 
+import android.content.Context;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.UnsupportedEncodingException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -22,12 +40,12 @@ public class MainActivity extends ActionBarActivity {
             return UriBuilder.fromUri("http://pperez-seu-ks.disca.upv.es:8080");
         }
 
-        public static void maini() {
+        public static void maini() throws MalformedURLException {
             Client client = ClientBuilder.newClient();
 
 
 
-            WebTarget target = client.target(getBaseURI().path("pdp/v3").build());
+           // WebTarget target = client.target(getBaseURI().path("pdp/v3").build());
          /*   target.queryParam()
             //pascual
             MultivaluedMap<String, String> queryParams = new MultivaluedMapImpl();
@@ -53,17 +71,132 @@ public class MainActivity extends ActionBarActivity {
             String HeaderService="Fiware-Service: myTenant";
             String payload="<?xml version=\"1.0\" encoding=\"utf-8\"?><Request xsi:schemaLocation=\"urn:oasis:names:tc:xacml:3.0:core:schema:wd-17 http://docs.oasis-open.org/xacml/3.0/xacml-core-v3-schema-wd-17.xsd\" ReturnPolicyIdList=\"false\" CombinedDecision=\"false\" xmlns=\"urn:oasis:names:tc:xacml:3.0:core:schema:wd-17\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><Attributes Category=\"urn:oasis:names:tc:xacml:1.0:subject-category:access-subject\"><Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:subject:subject-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">role12345</AttributeValue></Attribute></Attributes><Attributes Category=\"urn:oasis:names:tc:xacml:3.0:attribute-category:resource\"> <Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:resource:resource-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">fiware:orion:tenant1234:us-west-1:res9876</AttributeValue></Attribute></Attributes><Attributes Category=\"urn:oasis:names:tc:xacml:3.0:attribute-category:action\"><Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:action:action-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">read</AttributeValue></Attribute></Attributes></Request>";
 
-            Response result = target.request(MediaType.APPLICATION_XML_TYPE).header(HeaderAccept,String.class).header(HeaderContent, String.class).header(HeaderService,String.class).post(Entity.xml(payload));
-            System.out.println("Result 1: "+result);
+            HttpURLConnection httpcon = null;
+            try {
+                httpcon = (HttpURLConnection) ((new URL("http://pperez-seu-ks.disca.upv.es:8080/pdp/v3").openConnection()));
+                httpcon.setDoOutput(true);
+                httpcon.setRequestProperty("Content-Type", "application/json");
+                httpcon.setRequestProperty("Accept", "application/json");
+                httpcon.setRequestMethod("POST");
+                httpcon.connect();
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            //Response result = target.request(MediaType.APPLICATION_XML_TYPE).header(HeaderAccept,String.class).header(HeaderContent, String.class).header(HeaderService,String.class).post(Entity.xml(payload));
+        //    System.out.println("Result 1: "+result);
 
         }
     }
+
+    // When user clicks button, calls AsyncTask.
+    // Before attempting to fetch the URL, makes sure that there is a network connection.
+    public void myClickHandler(View view) {
+        // Gets the URL from the UI's text field.
+        String stringUrl = urlText.getText().toString();
+        ConnectivityManager connMgr = (ConnectivityManager)
+                getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
+        if (networkInfo != null && networkInfo.isConnected()) {
+            new DownloadWebpageTask().execute("");
+        } else {
+            textView.setText("No network connection available.");
+        }
+    }
+
+    // Uses AsyncTask to create a task away from the main UI thread. This task takes a
+    // URL string and uses it to create an HttpUrlConnection. Once the connection
+    // has been established, the AsyncTask downloads the contents of the webpage as
+    // an InputStream. Finally, the InputStream is converted into a string, which is
+    // displayed in the UI by the AsyncTask's onPostExecute method.
+    private class DownloadWebpageTask extends AsyncTask<String, Void, String> {
+        @Override
+        protected String doInBackground(String... urls) {
+
+            // params comes from the execute() call: params[0] is the url.
+            try {
+                return downloadUrl(urls[0]);
+            } catch (IOException e) {
+                return "Unable to retrieve web page. URL may be invalid.";
+            }
+        }
+        // onPostExecute displays the results of the AsyncTask.
+        @Override
+        protected void onPostExecute(String result) {
+            textView.setText(result);
+        }
+    }
+
+
+    // Given a URL, establishes an HttpUrlConnection and retrieves
+// the web page content as a InputStream, which it returns as
+// a string.
+    private String downloadUrl(String myurl) throws IOException {
+        InputStream is = null;
+        // Only display the first 500 characters of the retrieved
+        // web page content.
+        int len = 500;
+
+        try {
+            URL url = new URL("http://pperez-seu-ks.disca.upv.es:8080");
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setReadTimeout(10000 /* milliseconds */);
+            conn.setConnectTimeout(15000 /* milliseconds */);
+            conn.setRequestMethod("POST");
+            conn.setDoInput(true);
+            // Starts the query
+            conn.connect();
+            int response = conn.getResponseCode();
+            Log.d(DEBUG_TAG, "The response is: " + response);
+            is = conn.getInputStream();
+
+            // Convert the InputStream into a string
+            String contentAsString = readIt(is, len);
+            return contentAsString;
+
+            // Makes sure that the InputStream is closed after the app is
+            // finished using it.
+        } finally {
+            if (is != null) {
+                is.close();
+            }
+        }
+    }
+
+    // Reads an InputStream and converts it to a String.
+    public String readIt(InputStream stream, int len) throws IOException, UnsupportedEncodingException {
+        Reader reader = null;
+        reader = new InputStreamReader(stream, "UTF-8");
+        char[] buffer = new char[len];
+        reader.read(buffer);
+        return new String(buffer);
+    }
+
+    private static final String DEBUG_TAG = "HttpExample";
+    private EditText urlText;
+    private TextView textView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        ClientRest.maini();
+
+        urlText = (EditText) findViewById(R.id.myUrl);
+        textView = (TextView) findViewById(R.id.myText);
+        Button Botonw = (Button) findViewById(R.id.button);
+        Botonw.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                myClickHandler(v);
+
+            }
+        });
+        /*try {
+            ClientRest.maini();
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }*/
 
     }
 
