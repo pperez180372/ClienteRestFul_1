@@ -7,8 +7,10 @@ import android.view.MenuItem;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 
@@ -44,23 +46,16 @@ public class MainActivity extends ActionBarActivity {
 
             //pascual end
 */
-
             //String result = target.queryParam("header:9380820382",String.class).queryParam("herwererewr:rrererre",String.class).request(MediaType.TEXT_PLAIN).get(String.class);
 
             String HeaderAccept="Accept: application/xml";
             String HeaderContent="Content-type: application/xml";
             String HeaderService="Fiware-Service: myTenant";
+            String payload="<?xml version=\"1.0\" encoding=\"utf-8\"?><Request xsi:schemaLocation=\"urn:oasis:names:tc:xacml:3.0:core:schema:wd-17 http://docs.oasis-open.org/xacml/3.0/xacml-core-v3-schema-wd-17.xsd\" ReturnPolicyIdList=\"false\" CombinedDecision=\"false\" xmlns=\"urn:oasis:names:tc:xacml:3.0:core:schema:wd-17\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><Attributes Category=\"urn:oasis:names:tc:xacml:1.0:subject-category:access-subject\"><Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:subject:subject-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">role12345</AttributeValue></Attribute></Attributes><Attributes Category=\"urn:oasis:names:tc:xacml:3.0:attribute-category:resource\"> <Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:resource:resource-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">fiware:orion:tenant1234:us-west-1:res9876</AttributeValue></Attribute></Attributes><Attributes Category=\"urn:oasis:names:tc:xacml:3.0:attribute-category:action\"><Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:action:action-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">read</AttributeValue></Attribute></Attributes></Request>";
 
-
-            String result = target.request(MediaType.APPLICATION_XML_TYPE).header(HeaderAccept,String.class).
-                    header(HeaderContent,String.class).header(HeaderService,String.class).ºqueryParam("header:9380820382",String.class).queryParam("herwererewr:rrererre",String.class).request(MediaType.TEXT_PLAIN).post((String.class);
+            Response result = target.request(MediaType.APPLICATION_XML_TYPE).header(HeaderAccept,String.class).header(HeaderContent, String.class).header(HeaderService,String.class).post(Entity.xml(payload));
             System.out.println("Result 1: "+result);
 
-            result = target.request(MediaType.TEXT_XML).get(String.class);
-            System.out.println("Result 2: "+result);
-
-            result = target.request(MediaType.TEXT_HTML).get(String.class);
-            System.out.println("Result 3: "+result);
         }
     }
 
