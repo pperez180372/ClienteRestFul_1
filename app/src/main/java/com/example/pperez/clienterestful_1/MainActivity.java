@@ -14,14 +14,20 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.util.List;
+import java.util.Map;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -133,23 +139,83 @@ public class MainActivity extends ActionBarActivity {
 // the web page content as a InputStream, which it returns as
 // a string.
     private String downloadUrl(String myurl) throws IOException {
+        Map<String, List<String>> rr;
+        String res="";
         InputStream is = null;
         // Only display the first 500 characters of the retrieved
         // web page content.
         int len = 500;
+        String HeaderAccept="application/xml";
+        String HeaderContent="application/xml";
+        String HeaderService="myTenant";
+        String payload="<?xml version=\"1.0\" encoding=\"utf-8\"?><Request xsi:schemaLocation=\"urn:oasis:names:tc:xacml:3.0:core:schema:wd-17 http://docs.oasis-open.org/xacml/3.0/xacml-core-v3-schema-wd-17.xsd\" ReturnPolicyIdList=\"false\" CombinedDecision=\"false\" xmlns=\"urn:oasis:names:tc:xacml:3.0:core:schema:wd-17\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"><Attributes Category=\"urn:oasis:names:tc:xacml:1.0:subject-category:access-subject\"><Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:subject:subject-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">role12345</AttributeValue></Attribute></Attributes><Attributes Category=\"urn:oasis:names:tc:xacml:3.0:attribute-category:resource\"> <Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:resource:resource-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">fiware:orion:tenant1234:us-west-1:res9876</AttributeValue></Attribute></Attributes><Attributes Category=\"urn:oasis:names:tc:xacml:3.0:attribute-category:action\"><Attribute IncludeInResult=\"false\" AttributeId=\"urn:oasis:names:tc:xacml:1.0:action:action-id\"><AttributeValue DataType=\"http://www.w3.org/2001/XMLSchema#string\">read</AttributeValue></Attribute> </Attributes></Request>";
+       String encodedData = URLEncoder.encode(payload, "UTF-8");
+       // String encodedData = payload;
+    String leng= Integer.toString(payload.getBytes("UTF-8").length);
+        OutputStreamWriter wr = null;
+        BufferedReader rd  = null;
+        StringBuilder sb = null;
 
-        try {
-            URL url = new URL("http://pperez-seu-ks.disca.upv.es:8080");
+
+            URL url = new URL("http://pperez-seu-ks.disca.upv.es:8080/pdp/v3");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setReadTimeout(10000 /* milliseconds */);
             conn.setConnectTimeout(15000 /* milliseconds */);
             conn.setRequestMethod("POST");
-            conn.setDoInput(true);
+
+            conn.setRequestProperty("Accept", HeaderAccept);
+            conn.setRequestProperty("Content-type", HeaderContent);
+            conn.setRequestProperty("Fiware-Service",HeaderService);
+             conn.setRequestProperty( "Content-Length", leng );
+            conn.setDoOutput(true);
+
+            OutputStream os = conn.getOutputStream();
+            os.write(payload.getBytes("UTF-8"));
+            os.flush();
+        os.close();
+
+            /*URL myURL = new URL(serviceURL);
+            HttpURLConnection myURLConnection = (HttpURLConnection)myURL.openConnection();
+            String userCredentials = "username:password";
+            String basicAuth = "Basic " + new String(new Base64().encode(userCredentials.getBytes()));
+            myURLConnection.setRequestProperty ("Authorization", basicAuth);
+            myURLConnection.setRequestMethod("POST");
+            myURLConnection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+            myURLConnection.setRequestProperty("Content-Length", "" + Integer.toString(postData.getBytes().length));
+            myURLConnection.setRequestProperty("Content-Language", "en-US");
+            myURLConnection.setUseCaches(false);
+            myURLConnection.setDoInput(true);
+            myURLConnection.setDoOutput(true);
+            */
+
+
+
             // Starts the query
-            conn.connect();
-            int response = conn.getResponseCode();
-            Log.d(DEBUG_TAG, "The response is: " + response);
+            //conn.connect();
+            //int response = conn.getResponseCode();
+        int rc = conn.getResponseCode();
+        String resp=conn.getContentEncoding();
+        is=conn.getInputStream();
+
+        if(rc==200)
+        {
+            //read the result from the server
+            rd = new BufferedReader(new InputStreamReader(is));
+            //res=rd.readLine();
+            // cabeceras de recepcion
+            rr = conn.getHeaderFields();
+
+
+        }
+        else
+        {
+             rr=null;
+            System.out.println("http response code error: "+rc+"\n");
+
+        }
+
             is = conn.getInputStream();
+            System.out.println("headers: "+rr.toString());
 
             // Convert the InputStream into a string
             String contentAsString = readIt(is, len);
@@ -157,11 +223,7 @@ public class MainActivity extends ActionBarActivity {
 
             // Makes sure that the InputStream is closed after the app is
             // finished using it.
-        } finally {
-            if (is != null) {
-                is.close();
-            }
-        }
+
     }
 
     // Reads an InputStream and converts it to a String.
